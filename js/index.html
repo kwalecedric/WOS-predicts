@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WOS PREDICTS — Predict. Compete. Dominate.</title>
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+
+<!-- BG FIELD LINES -->
+<div class="bg-field">
+  <svg viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <rect x="40" y="40" width="720" height="520" fill="none" stroke="white" stroke-width="2"/>
+    <line x1="400" y1="40" x2="400" y2="560" stroke="white" stroke-width="2"/>
+    <circle cx="400" cy="300" r="80" fill="none" stroke="white" stroke-width="2"/>
+    <circle cx="400" cy="300" r="4" fill="white"/>
+    <rect x="40" y="200" width="110" height="200" fill="none" stroke="white" stroke-width="2"/>
+    <rect x="650" y="200" width="110" height="200" fill="none" stroke="white" stroke-width="2"/>
+    <rect x="40" y="240" width="50" height="120" fill="none" stroke="white" stroke-width="2"/>
+    <rect x="710" y="240" width="50" height="120" fill="none" stroke="white" stroke-width="2"/>
+    <path d="M150 300 Q150 220 200 220" fill="none" stroke="white" stroke-width="2"/>
+    <path d="M150 300 Q150 380 200 380" fill="none" stroke="white" stroke-width="2"/>
+    <path d="M650 300 Q650 220 600 220" fill="none" stroke="white" stroke-width="2"/>
+    <path d="M650 300 Q650 380 600 380" fill="none" stroke="white" stroke-width="2"/>
+  </svg>
+</div>
+
+<!-- GLOW ORBS -->
+<div class="orb orb-green"></div>
+<div class="orb orb-blue"></div>
+
+<div class="page">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="logo-wrap">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 2c1.47 0 2.86.4 4.06 1.09l-1.56 4.8-2.5-.82-2.5.82-1.56-4.8A7.96 7.96 0 0 1 12 4zm-6.6 3.37 1.65 5.08-2.3 3.17A8.02 8.02 0 0 1 4 12c0-1.74.56-3.35 1.4-4.63zm13.2 0A7.95 7.95 0 0 1 20 12c0 1.63-.49 3.15-1.34 4.41l-2.31-3.17 1.65-5.07zM9.19 11.19l2.31-.76v4.76l-3.77 2.74a8.01 8.01 0 0 1-2.5-4.11l2.71-3.73.75 1.1zm5.62 0 .75-1.1 2.71 3.73a8.01 8.01 0 0 1-2.5 4.11L12 15.19v-4.76l2.31.76zm-2.81 6v-2.57l2.39 1.73-2.39.84zm0 0-2.39-.84 2.39-1.73v2.57z"/>
+        </svg>
+      </div>
+      <div class="logo-text">WOS <span>PREDICTS</span></div>
+    </div>
+    <div class="tournament-badge">
+      <div class="live-dot"></div>
+      ACTIVE COMPETITION
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow">⚽ Official Prediction Game</div>
+
+    <div class="hero-title">
+      <div>PREDICT</div>
+      <div class="accent">COMPETE</div>
+      <div class="outline">DOMINATE</div>
+    </div>
+
+    <div class="hero-tagline">
+      Predict. <span>Win.</span> Repeat.
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-pill"><strong>104</strong> matches</div>
+      <div class="stat-divider"></div>
+      <div class="stat-pill"><strong>$420</strong> prize pool</div>
+      <div class="stat-divider"></div>
+      <div class="stat-pill"><strong>FREE</strong> to enter</div>
+    </div>
+
+    <!-- AUTH CARD -->
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-signin" onclick="switchAuthTab('signin')">Sign in</button>
+        <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Create account</button>
+      </div>
+
+      <!-- GOOGLE -->
+      <button class="google-btn" onclick="googleAuth()">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <div class="or-divider">
+        <div class="or-line"></div>
+        <div class="or-text">or</div>
+        <div class="or-line"></div>
+      </div>
+
+      <!-- SIGN IN FORM -->
+      <div id="form-signin">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" type="email" id="signin-email" placeholder="you@example.com" autocomplete="email">
+          <div class="form-error" id="signin-email-err"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-wrap">
+            <input class="form-input" type="password" id="signin-password" placeholder="Your password" autocomplete="current-password">
+            <button class="eye-btn" onclick="togglePwd('signin-password', this)" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+          <div class="form-error" id="signin-pass-err"></div>
+        </div>
+        <button class="btn-primary submit-btn" onclick="handleSignIn()">
+          <span class="btn-text">Sign in</span>
+          <div class="spinner"></div>
+        </button>
+        <div class="auth-footer">
+          <a onclick="showForgot()">Forgot password?</a>
+        </div>
+      </div>
+
+      <!-- SIGN UP FORM -->
+      <div id="form-signup" style="display:none;">
+        <div class="form-group">
+          <label class="form-label">Display name</label>
+          <input class="form-input" type="text" id="signup-name" placeholder="e.g. Cedric" autocomplete="name">
+          <div class="form-error" id="signup-name-err"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" type="email" id="signup-email" placeholder="you@example.com" autocomplete="email">
+          <div class="form-error" id="signup-email-err"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-wrap">
+            <input class="form-input" type="password" id="signup-password" placeholder="Min. 8 characters" autocomplete="new-password">
+            <button class="eye-btn" onclick="togglePwd('signup-password', this)" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+          <div class="form-error" id="signup-pass-err"></div>
+        </div>
+        <button class="btn-primary submit-btn" onclick="handleSignUp()">
+          <span class="btn-text">Create account</span>
+          <div class="spinner"></div>
+        </button>
+        <div class="auth-footer">
+          Already have an account? <a onclick="switchAuthTab('signin')">Sign in</a>
+        </div>
+      </div>
+    </div>
+    <!-- /AUTH CARD -->
+
+  </div>
+  <!-- /HERO -->
+
+  <!-- FEATURES -->
+  <div class="features">
+    <div class="feature-chip"><div class="dot"></div> Real-time leaderboard</div>
+    <div class="feature-chip"><div class="dot"></div> Auto-scoring</div>
+    <div class="feature-chip"><div class="dot"></div> Streak bonuses</div>
+    <div class="feature-chip"><div class="dot"></div> Group chat</div>
+    <div class="feature-chip"><div class="dot"></div> Admin panel</div>
+    <div class="feature-chip"><div class="dot"></div> 104 matches</div>
+  </div>
+
+</div>
+<!-- /PAGE -->
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="js/auth.js"></script>
+</body>
+</html>
