@@ -9,20 +9,19 @@ import {
   auth, db,
   COLLECTIONS,
   RAPIDAPI_KEY, RAPIDAPI_HOST,
-  COMPETITION_ID, SEASON
+  isSuperAdmin, getUserLeagueStatus, STATUS
 } from "./firebase-config.js";
-
 // ─────────────────────────────────────────────────────────────
 // STATE — variables we use across functions
 // ─────────────────────────────────────────────────────────────
-let currentUser    = null;   // Firebase Auth user object
-let userProfile    = null;   // Firestore user document
-let todayMatches   = [];     // today's fixtures
-let activePick     = null;   // which match the modal is open for
-let selectedPick   = null;   // which pick option is selected
-let wildcardActive = false;  // whether wildcard is toggled on
-let countdownTimer = null;   // interval for countdown
-
+let currentUser    = null;
+let userProfile    = null;
+let activeLeagueId = null;
+let todayMatches   = [];
+let activePick     = null;
+let selectedPick   = null;
+let wildcardActive = false;
+let countdownTimer = null;
 // ─────────────────────────────────────────────────────────────
 // ENTRY POINT — wait for Firebase Auth to confirm login
 // If not logged in, redirect to login page
@@ -33,6 +32,49 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
   currentUser = user;
+
+  if (isSuperAdmin(user.uid)) {
+    await init();
+    return;
+  }
+
+  const userRef  = doc(db, COLLECTIONS.users, user.uid);
+  const userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists()) {
+    window.location.href = "index.html";
+    return;
+  }
+
+  const userData  = userSnap.data();
+  const leagues   = userData.leagues || {};
+  const leagueIds = Object.keys(leagues);
+
+  if (leagueIds.length === 0) {
+    window.location.href = "index.html";
+    return;
+  }
+
+  activeLeagueId = sessionStorage.getItem('activeLeagueId') || leagueIds[0];
+  sessionStorage.setItem('activeLeagueId', activeLeagueId);
+
+  const status = getUserLeagueStatus(userData, activeLeagueId);
+
+  if (status === STATUS.pending) {
+    window.location.href = "index.html?screen=pending";
+    return;
+  }
+
+  if (status === STATUS.rejected) {
+    window.location.href = "index.html?screen=rejected";
+    return;
+  }
+
+  if (status !== STATUS.approved) {
+    window.location.href = "index.html";
+    return;
+  }
+
   await init();
 });
 
@@ -71,21 +113,31 @@ async function loadUserProfile() {
     document.getElementById('user-avatar').textContent = name.charAt(0).toUpperCase();
 
     // Update stats
-    document.getElementById('stat-points').textContent   = userProfile.points   ?? 0;
-    document.getElementById('stat-streak').textContent   = userProfile.streak   ?? 0;
-    document.getElementById('stat-wildcards').textContent= userProfile.wildcards ?? 3;
+    // Get stats from league-specific data
+    const leagueData = userProfile.leagues?.[activeLeagueId] || {};
+    const points     = leagueData.points   ?? 0;
+    const streak     = leagueData.streak   ?? 0;
+    const wildcards  = leagueData.wildcards ?? 3;
 
-    // Calculate rank — count users with more points
+    document.getElementById('stat-points').textContent    = points;
+    document.getElementById('stat-streak').textContent    = streak;
+    document.getElementById('stat-wildcards').textContent = wildcards;
+
+    // Calculate rank within this league only
     const usersSnap = await getDocs(collection(db, COLLECTIONS.users));
     const allUsers  = usersSnap.docs.map(d => d.data());
-    const rank      = allUsers.filter(u => u.points > userProfile.points).length + 1;
+    const leagueUsers = allUsers.filter(u => u.leagues?.[activeLeagueId]?.status === STATUS.approved);
+    const rank = leagueUsers.filter(u =>
+      (u.leagues?.[activeLeagueId]?.points ?? 0) > points
+    ).length + 1;
     document.getElementById('stat-rank').textContent = '#' + rank;
 
     // Show streak banner if streak >= 3
-    if (userProfile.streak >= 3) {
+   // Show streak banner if streak >= 3
+    if (streak >= 3) {
       const banner = document.getElementById('streak-banner');
       document.getElementById('streak-banner-text').textContent =
-        `${userProfile.streak} correct in a row! Next pick = double points 🔥`;
+        `${streak} correct in a row! Next pick = double points 🔥`;
       banner.style.display = 'flex';
     }
 

@@ -1,3 +1,4 @@
+
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -18,6 +19,16 @@ import {
   COLLECTIONS, ROLES, STATUS,
   isSuperAdmin
 } from "./firebase-config.js";
+
+// ── HANDLE REDIRECT SCREENS ───────────────────────────────────
+// If dashboard redirected here with a screen param, show it immediately
+const urlParams = new URLSearchParams(window.location.search);
+const screenParam = urlParams.get('screen');
+if (screenParam) {
+  document.addEventListener('DOMContentLoaded', () => {
+    showScreen('screen-' + screenParam);
+  });
+}
 
 // ── AUTH STATE LISTENER ───────────────────────────────────────
 // Runs on page load — if already logged in, check their status
