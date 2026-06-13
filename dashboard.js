@@ -272,22 +272,28 @@ function buildMatchCard(match, existingPick, isLocked) {
     </div>
     <div class="match-teams-row">
       <div class="team-block">
-        <div class="team-flag">${match.homeLogo
-  ? `<img src="${match.homeLogo}" style="width:36px;height:36px;object-fit:contain;">`
-  : match.homeAbbr}</div>
-        <div class="team-name">${match.homeTeam}</div>
-      </div>
+      <div class="team-flag">
+  ${match.homeLogo
+    ? `<img src="${match.homeLogo}" style="width:36px;height:36px;object-fit:contain;" 
+        onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+       <span style="display:none; font-size:13px; font-weight:700; color:var(--text);">${match.homeAbbr}</span>`
+    : `<span style="font-size:13px; font-weight:700;">${match.homeAbbr}</span>`}
+</div>
+<div class="team-name">${match.homeTeam}</div>
       <div class="match-center">
         <div class="vs-text">VS</div>
         <div class="kickoff-time">${kickoffDisplay}</div>
         <div class="countdown" id="countdown-${match.id}"></div>
       </div>
       <div class="team-block">
-       <div class="team-flag">${match.awayLogo
-  ? `<img src="${match.awayLogo}" style="width:36px;height:36px;object-fit:contain;">`
-  : match.awayAbbr}</div>
-        <div class="team-name">${match.awayTeam}</div>
-      </div>
+     <div class="team-flag">
+  ${match.awayLogo
+    ? `<img src="${match.awayLogo}" style="width:36px;height:36px;object-fit:contain;"
+        onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+       <span style="display:none; font-size:13px; font-weight:700; color:var(--text);">${match.awayAbbr}</span>`
+    : `<span style="font-size:13px; font-weight:700;">${match.awayAbbr}</span>`}
+</div>
+<div class="team-name">${match.awayTeam}</div>
     </div>
     <div class="match-card-footer">${footerHTML}</div>
   `;
