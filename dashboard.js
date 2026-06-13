@@ -234,25 +234,35 @@ function buildMatchCard(match, existingPick, isLocked) {
 
   const statusText  = isLocked ? '🔒 Locked' : '⏰ Open';
   const statusClass = isLocked ? 'locked' : 'open';
-
-  // Format kickoff time for display
   const kickoffDisplay = formatKickoff(match.kickoff);
 
-  // Footer — shows existing pick or predict button
+  // Home logo or abbreviation fallback
+  const homeImgHTML = match.homeLogo
+    ? `<img src="${match.homeLogo}" style="width:36px;height:36px;object-fit:contain;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+       <span style="display:none;font-size:13px;font-weight:700;color:var(--text);">${match.homeAbbr}</span>`
+    : `<span style="font-size:13px;font-weight:700;color:var(--text);">${match.homeAbbr || '?'}</span>`;
+
+  // Away logo or abbreviation fallback
+  const awayImgHTML = match.awayLogo
+    ? `<img src="${match.awayLogo}" style="width:36px;height:36px;object-fit:contain;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+       <span style="display:none;font-size:13px;font-weight:700;color:var(--text);">${match.awayAbbr}</span>`
+    : `<span style="font-size:13px;font-weight:700;color:var(--text);">${match.awayAbbr || '?'}</span>`;
+
+  // Footer
   let footerHTML = '';
   if (existingPick) {
     const pickLabel = getPickLabel(existingPick.pick);
-    const wcBadge   = existingPick.wildcard
-      ? '<span style="color:var(--amber); font-size:11px;">🃏 Wildcard</span>' : '';
+    const wcBadge = existingPick.wildcard
+      ? '<span style="color:var(--amber);font-size:11px;">🃏 Wildcard</span>' : '';
     footerHTML = `
       <div class="pick-submitted">
         ✅ <span>${pickLabel}</span>
         ${existingPick.pick === 'correct_score'
-          ? `<span style="color:var(--text-muted); font-size:11px;">(${existingPick.scoreHome}–${existingPick.scoreAway})</span>`
-          : ''}
+          ? `<span style="color:var(--text-muted);font-size:11px;">(${existingPick.scoreHome}–${existingPick.scoreAway})</span>` : ''}
         ${existingPick.pick === 'motm'
-          ? `<span style="color:var(--text-muted); font-size:11px;">(${existingPick.motmPlayer})</span>`
-          : ''}
+          ? `<span style="color:var(--text-muted);font-size:11px;">(${existingPick.motmPlayer})</span>` : ''}
       </div>
       ${wcBadge}`;
   } else if (isLocked) {
@@ -272,28 +282,18 @@ function buildMatchCard(match, existingPick, isLocked) {
     </div>
     <div class="match-teams-row">
       <div class="team-block">
-      <div class="team-flag">
-  ${match.homeLogo
-    ? `<img src="${match.homeLogo}" style="width:36px;height:36px;object-fit:contain;" 
-        onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
-       <span style="display:none; font-size:13px; font-weight:700; color:var(--text);">${match.homeAbbr}</span>`
-    : `<span style="font-size:13px; font-weight:700;">${match.homeAbbr}</span>`}
-</div>
-<div class="team-name">${match.homeTeam}</div>
+        <div class="team-flag">${homeImgHTML}</div>
+        <div class="team-name">${match.homeTeam}</div>
+      </div>
       <div class="match-center">
         <div class="vs-text">VS</div>
         <div class="kickoff-time">${kickoffDisplay}</div>
         <div class="countdown" id="countdown-${match.id}"></div>
       </div>
       <div class="team-block">
-     <div class="team-flag">
-  ${match.awayLogo
-    ? `<img src="${match.awayLogo}" style="width:36px;height:36px;object-fit:contain;"
-        onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
-       <span style="display:none; font-size:13px; font-weight:700; color:var(--text);">${match.awayAbbr}</span>`
-    : `<span style="font-size:13px; font-weight:700;">${match.awayAbbr}</span>`}
-</div>
-<div class="team-name">${match.awayTeam}</div>
+        <div class="team-flag">${awayImgHTML}</div>
+        <div class="team-name">${match.awayTeam}</div>
+      </div>
     </div>
     <div class="match-card-footer">${footerHTML}</div>
   `;
@@ -312,17 +312,25 @@ window.openModal = function(matchId) {
   if (!activePick) return;
 
   // Set match header in modal
-  document.getElementById('modal-match-header').innerHTML = `
-    <div class="modal-team">
-      <div class="modal-flag">${activePick.homeFlag}</div>
-      <div class="modal-team-name">${activePick.homeTeam}</div>
+ document.getElementById('modal-match-header').innerHTML = `
+  <div class="modal-team">
+    <div class="modal-flag">
+      ${activePick.homeLogo
+        ? `<img src="${activePick.homeLogo}" style="width:32px;height:32px;object-fit:contain;">`
+        : activePick.homeAbbr}
     </div>
-    <div class="modal-vs">VS</div>
-    <div class="modal-team">
-      <div class="modal-flag">${activePick.awayFlag}</div>
-      <div class="modal-team-name">${activePick.awayTeam}</div>
+    <div class="modal-team-name">${activePick.homeTeam}</div>
+  </div>
+  <div class="modal-vs">VS</div>
+  <div class="modal-team">
+    <div class="modal-flag">
+      ${activePick.awayLogo
+        ? `<img src="${activePick.awayLogo}" style="width:32px;height:32px;object-fit:contain;">`
+        : activePick.awayAbbr}
     </div>
-  `;
+    <div class="modal-team-name">${activePick.awayTeam}</div>
+  </div>
+`;
 
   // Update team labels on pick options and score inputs
   document.getElementById('pick-home-label').textContent = activePick.homeTeam + ' win';
