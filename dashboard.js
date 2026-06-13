@@ -374,24 +374,20 @@ window.closeModal = function() {
 // ─────────────────────────────────────────────────────────────
 // SELECT PICK OPTION
 // ─────────────────────────────────────────────────────────────
-document.querySelectorAll('.pick-option').forEach(el => {
-  el.addEventListener('click', () => {
-    // Remove selected from all
-    document.querySelectorAll('.pick-option').forEach(o => o.classList.remove('selected'));
-    // Add to clicked
-    el.classList.add('selected');
-    selectedPick = el.dataset.pick;
+document.getElementById('picks-grid').addEventListener('click', (e) => {
+  const option = e.target.closest('.pick-option');
+  if (!option) return;
 
-    // Show/hide score input
-    document.getElementById('score-input-wrap').style.display =
-      selectedPick === 'correct_score' ? 'block' : 'none';
+  document.querySelectorAll('.pick-option').forEach(o => o.classList.remove('selected'));
+  option.classList.add('selected');
+  selectedPick = option.dataset.pick;
 
-    // Show/hide MOTM input
-    document.getElementById('motm-input-wrap').style.display =
-      selectedPick === 'motm' ? 'block' : 'none';
-  });
+  document.getElementById('score-input-wrap').style.display =
+    selectedPick === 'correct_score' ? 'block' : 'none';
+
+  document.getElementById('motm-input-wrap').style.display =
+    selectedPick === 'motm' ? 'block' : 'none';
 });
-
 // ─────────────────────────────────────────────────────────────
 // TOGGLE WILDCARD
 // ─────────────────────────────────────────────────────────────
