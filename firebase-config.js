@@ -21,7 +21,9 @@ export const googleProvider = new GoogleAuthProvider();
 // ── SUPER ADMIN ───────────────────────────────────────────────
 // Only this UID has super admin privileges
 // Replace with your actual UID from Firebase Auth
-export const SUPER_ADMIN_UID = "c4k9oD9ejANTqtkLlc0Y082kYnI2";
+export const SUPER_ADMIN_UID = "c4k9oD9ejANTqtkLlc0Y082kYnl2";
+// Default league ID — used as fallback before admin panel is built
+export const DEFAULT_LEAGUE_ID = "GoQywLIG0V4oWGvl8yRQ";
 
 // ── API CONFIG ────────────────────────────────────────────────
 export const RAPIDAPI_KEY  = "be356bced3msh57c6ef63b89280ap113f79jsn40f7e7727aa3";
