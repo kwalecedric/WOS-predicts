@@ -153,8 +153,11 @@ async function fetchMatchesFromAPI(date) {
 
   // Find World Cup competition — cid 1382
   // If not found fall back to first competition
-  const worldCup = competitions.find(c => c.cid === "1382") || competitions[0];
-
+const competitions = data.response?.items || [];
+ const worldCup = competitions.find(c => c.cid === "1382" || c.cid === 1382 || c.cname?.toLowerCase().includes('world cup')) || competitions[0];
+ console.log('World Cup object:', worldCup);
+ console.log('Matches:', worldCup?.matches);
+ 
   if (!worldCup || !worldCup.matches) return [];
 
   // Map each match to our format
