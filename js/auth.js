@@ -8,20 +8,65 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 
 import {
-  doc,
-  setDoc,
+  doc, getDoc, setDoc, updateDoc,
+  collection, query, where, getDocs,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
-import { auth, db, googleProvider, COLLECTIONS } from "./firebase-config.js";
+import {
+  auth, db, googleProvider,
+  COLLECTIONS, ROLES, STATUS,
+  isSuperAdmin
+} from "./firebase-config.js";
 
 // ── AUTH STATE LISTENER ───────────────────────────────────────
-// If user already logged in, skip straight to dashboard
-onAuthStateChanged(auth, (user) => {
-  if (user) window.location.href = "dashboard.html";
+// Runs on page load — if already logged in, check their status
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return;
+
+  // User is logged in — check if they have an active league
+  const userRef  = doc(db, COLLECTIONS.users, user.uid);
+  const userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists()) return; // New user — let signup complete
+
+  const userData = userSnap.data();
+
+  // Super admin goes straight to super admin dashboard
+  if (isSuperAdmin(user.uid)) {
+    window.location.href = "super-admin.html";
+    return;
+  }
+
+  // Check if user has any leagues
+  const leagues = userData.leagues || {};
+  const leagueIds = Object.keys(leagues);
+
+  if (leagueIds.length === 0) {
+    // No league yet — show league code entry
+    showScreen('screen-league');
+    return;
+  }
+
+  // Check status in first league
+  // If in multiple leagues, we'll handle league switching later
+  const firstLeagueId = leagueIds[0];
+  const leagueStatus  = leagues[firstLeagueId]?.status;
+
+  if (leagueStatus === STATUS.approved) {
+    // Save active league to sessionStorage for other pages
+    sessionStorage.setItem('activeLeagueId', firstLeagueId);
+    window.location.href = "dashboard.html";
+  } else if (leagueStatus === STATUS.pending) {
+    showScreen('screen-pending');
+  } else if (leagueStatus === STATUS.rejected) {
+    showScreen('screen-rejected');
+  } else {
+    showScreen('screen-league');
+  }
 });
 
-// ── CREATE USER PROFILE IN FIRESTORE ─────────────────────────
+// ── CREATE USER PROFILE ───────────────────────────────────────
 async function createUserProfile(user, displayName) {
   const userRef = doc(db, COLLECTIONS.users, user.uid);
   await setDoc(userRef, {
@@ -29,11 +74,9 @@ async function createUserProfile(user, displayName) {
     displayName: displayName || user.displayName || "Player",
     email:       user.email,
     photoURL:    user.photoURL || null,
-    points:      0,
-    streak:      0,
-    wildcards:   3,
-    isAdmin:     false,
-    joinedAt:    serverTimestamp(),
+    isSuperAdmin: isSuperAdmin(user.uid),
+    leagues:     {},   // empty — filled when they join a league
+    createdAt:   serverTimestamp(),
   }, { merge: true });
 }
 
@@ -53,11 +96,11 @@ async function handleSignIn() {
 
   try {
     await signInWithEmailAndPassword(auth, email, pass);
-    showToast('Welcome back!', 'success');
+    // onAuthStateChanged handles redirect
   } catch (err) {
     btn.classList.remove('loading');
-    if (err.code === 'auth/user-not-found' || 
-        err.code === 'auth/wrong-password'  || 
+    if (err.code === 'auth/user-not-found' ||
+        err.code === 'auth/wrong-password'  ||
         err.code === 'auth/invalid-credential') {
       showError('signin-pass-err', 'Incorrect email or password');
     } else if (err.code === 'auth/too-many-requests') {
@@ -89,7 +132,9 @@ async function handleSignUp() {
     const user       = credential.user;
     await updateProfile(user, { displayName: name });
     await createUserProfile(user, name);
-    showToast('Welcome to WOS PREDICTS!', 'success');
+    btn.classList.remove('loading');
+    // Show league code screen
+    showScreen('screen-league');
   } catch (err) {
     btn.classList.remove('loading');
     if (err.code === 'auth/email-already-in-use') {
@@ -108,7 +153,7 @@ async function googleAuth() {
     showToast('Opening Google sign-in...', '');
     const result = await signInWithPopup(auth, googleProvider);
     await createUserProfile(result.user, result.user.displayName);
-    showToast('Signed in with Google!', 'success');
+    // onAuthStateChanged handles redirect
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
       showToast('Google sign-in failed. Try again', 'error');
@@ -116,16 +161,90 @@ async function googleAuth() {
   }
 }
 
+// ── JOIN LEAGUE WITH CODE ─────────────────────────────────────
+async function joinLeague() {
+  const code = document.getElementById('league-code-input').value.trim().toUpperCase();
+  if (!code) { showError('league-code-err', 'Please enter a league code'); return; }
+
+  const btn = document.getElementById('join-league-btn');
+  btn.classList.add('loading');
+
+  try {
+    // Search for league with this code
+    const leaguesRef = collection(db, COLLECTIONS.leagues);
+    const q          = query(leaguesRef, where('code', '==', code));
+    const snap       = await getDocs(q);
+
+    if (snap.empty) {
+      btn.classList.remove('loading');
+      showError('league-code-err', 'Invalid code. Check with your group admin');
+      return;
+    }
+
+    const leagueDoc  = snap.docs[0];
+    const league     = leagueDoc.data();
+    const leagueId   = leagueDoc.id;
+
+    // Check if code has expired
+    if (league.codeExpiresAt && league.codeExpiresAt.toMillis() < Date.now()) {
+      btn.classList.remove('loading');
+      showError('league-code-err', 'This league code has expired. Contact your admin');
+      return;
+    }
+
+    // Check league status
+    if (league.status !== 'active') {
+      btn.classList.remove('loading');
+      showError('league-code-err', 'This league is no longer active');
+      return;
+    }
+
+    // Add user to league as pending
+    const user    = auth.currentUser;
+    const userRef = doc(db, COLLECTIONS.users, user.uid);
+
+    await updateDoc(userRef, {
+      [`leagues.${leagueId}`]: {
+        status:   STATUS.pending,
+        role:     ROLES.player,
+        joinedAt: serverTimestamp(),
+        points:   0,
+        streak:   0,
+        wildcards: 3,
+      }
+    });
+
+    btn.classList.remove('loading');
+    showScreen('screen-pending');
+
+  } catch (err) {
+    btn.classList.remove('loading');
+    console.error('Error joining league:', err);
+    showError('league-code-err', 'Something went wrong. Try again');
+  }
+}
+
 // ── FORGOT PASSWORD ───────────────────────────────────────────
 async function showForgot() {
   const email = document.getElementById('signin-email').value.trim();
-  if (!isValidEmail(email)) { showError('signin-email-err', 'Enter your email above first'); return; }
+  if (!isValidEmail(email)) {
+    showError('signin-email-err', 'Enter your email above first');
+    return;
+  }
   try {
     await sendPasswordResetEmail(auth, email);
     showToast('Reset link sent to ' + email, 'success');
   } catch (err) {
     showError('signin-email-err', 'Email not found');
   }
+}
+
+// ── SCREEN MANAGER ────────────────────────────────────────────
+// Controls which screen is visible on the auth page
+function showScreen(screenId) {
+  document.querySelectorAll('.auth-screen').forEach(s => s.style.display = 'none');
+  const screen = document.getElementById(screenId);
+  if (screen) screen.style.display = 'block';
 }
 
 // ── UI HELPERS ────────────────────────────────────────────────
@@ -172,37 +291,16 @@ window.handleSignIn  = handleSignIn;
 window.handleSignUp  = handleSignUp;
 window.googleAuth    = googleAuth;
 window.showForgot    = showForgot;
+window.joinLeague    = joinLeague;
 window.switchAuthTab = switchAuthTab;
 window.togglePwd     = togglePwd;
 
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter') return;
-  const isSignin = document.getElementById('form-signin').style.display !== 'none';
-  if (isSignin) handleSignIn(); else handleSignUp();
-});
-// ── LOAD COMPETITION INFO ─────────────────────────────────────
-// Pulls live competition name and prize from Firestore
-// so landing page never has hardcoded values
-async function loadCompetitionInfo() {
-  try {
-    const { db, COLLECTIONS } = await import("./firebase-config.js");
-    const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js");
-    
-    const snap = await getDocs(collection(db, COLLECTIONS.competition));
-    if (snap.empty) return;
-    
-    const comp = snap.docs[0].data();
-    
-    if (comp.totalMatches) {
-      document.getElementById('landing-matches').textContent = comp.totalMatches;
-    }
-    if (comp.prizePool) {
-      document.getElementById('landing-prize').textContent = comp.prizePool;
-    }
-  } catch(e) {
-    // Silently fail — dashes show if no competition set up yet
+  const activeScreen = document.querySelector('.auth-screen[style*="block"]');
+  if (activeScreen?.id === 'screen-league') joinLeague();
+  else {
+    const isSignin = document.getElementById('form-signin').style.display !== 'none';
+    if (isSignin) handleSignIn(); else handleSignUp();
   }
-}
-
-// Call on page load
-loadCompetitionInfo();
+});

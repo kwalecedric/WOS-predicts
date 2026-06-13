@@ -155,8 +155,53 @@
           Already have an account? <a onclick="switchAuthTab('signin')">Sign in</a>
         </div>
       </div>
-    </div>
+   </div>
     <!-- /AUTH CARD -->
+
+    <!-- LEAGUE CODE SCREEN -->
+    <div class="auth-screen" id="screen-league" style="display:none;">
+      <div class="auth-card">
+        <div class="screen-icon">🏆</div>
+        <div class="screen-title">Join your league</div>
+        <div class="screen-sub">Enter the invite code from your group admin</div>
+        <div class="form-group" style="margin-top:20px;">
+          <label class="form-label">League code</label>
+          <input class="form-input league-code-input" type="text" id="league-code-input"
+            placeholder="e.g. SQVB-7K2M" maxlength="9"
+            oninput="this.value = this.value.toUpperCase()"
+            autocomplete="off">
+          <div class="form-error" id="league-code-err"></div>
+        </div>
+        <button class="btn-primary submit-btn" id="join-league-btn" onclick="joinLeague()">
+          <span class="btn-text">Join league</span>
+          <div class="spinner"></div>
+        </button>
+      </div>
+    </div>
+
+    <!-- PENDING APPROVAL SCREEN -->
+    <div class="auth-screen" id="screen-pending" style="display:none;">
+      <div class="auth-card" style="text-align:center;">
+        <div class="screen-icon">⏳</div>
+        <div class="screen-title">Waiting for approval</div>
+        <div class="screen-sub">Your request has been sent to the league admin. You'll get access once they approve you.</div>
+        <div class="pending-dots">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- REJECTED SCREEN -->
+    <div class="auth-screen" id="screen-rejected" style="display:none;">
+      <div class="auth-card" style="text-align:center;">
+        <div class="screen-icon">❌</div>
+        <div class="screen-title">Access denied</div>
+        <div class="screen-sub">Your request was not approved. Contact your group admin for help.</div>
+        <button class="btn-primary" style="margin-top:20px;" onclick="window.location.reload()">
+          <span class="btn-text">Try again</span>
+        </button>
+      </div>
+    </div>
 
   </div>
   <!-- /HERO -->

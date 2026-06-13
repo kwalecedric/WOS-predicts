@@ -112,8 +112,8 @@ async function loadTodayMatches() {
       todayMatches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } else {
       // Not in Firestore — fetch from API and save
-      todayMatches = await fetchMatchesFromAPI(today);
-      await saveMatchesToFirestore(todayMatches);
+      const fetched = await fetchMatchesFromAPI(today);
+      todayMatches = await saveMatchesToFirestore(fetched);
     }
 
     await renderMatches();
@@ -153,7 +153,7 @@ async function fetchMatchesFromAPI(date) {
 
   // Find World Cup competition — cid 1382
   // If not found fall back to first competition
-  const worldCup = competitions.find(c => c.cid === "1382") || competitions[0];
+ const worldCup = competitions.find(c => c.cid === "1382" || c.cid === 1382 || c.cname?.toLowerCase().includes('world cup')) || competitions[0];
 
   if (!worldCup || !worldCup.matches) return [];
 
@@ -179,12 +179,15 @@ async function fetchMatchesFromAPI(date) {
 // Saves API data so we don't call the API again tomorrow
 // ─────────────────────────────────────────────────────────────
 async function saveMatchesToFirestore(matches) {
+  const saved = [];
   for (const match of matches) {
-    await addDoc(collection(db, COLLECTIONS.matches), {
+    const docRef = await addDoc(collection(db, COLLECTIONS.matches), {
       ...match,
       createdAt: serverTimestamp(),
     });
+    saved.push({ ...match, id: docRef.id });
   }
+  return saved;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -371,24 +374,20 @@ window.closeModal = function() {
 // ─────────────────────────────────────────────────────────────
 // SELECT PICK OPTION
 // ─────────────────────────────────────────────────────────────
-document.querySelectorAll('.pick-option').forEach(el => {
-  el.addEventListener('click', () => {
-    // Remove selected from all
-    document.querySelectorAll('.pick-option').forEach(o => o.classList.remove('selected'));
-    // Add to clicked
-    el.classList.add('selected');
-    selectedPick = el.dataset.pick;
+document.getElementById('picks-grid').addEventListener('click', (e) => {
+  const option = e.target.closest('.pick-option');
+  if (!option) return;
 
-    // Show/hide score input
-    document.getElementById('score-input-wrap').style.display =
-      selectedPick === 'correct_score' ? 'block' : 'none';
+  document.querySelectorAll('.pick-option').forEach(o => o.classList.remove('selected'));
+  option.classList.add('selected');
+  selectedPick = option.dataset.pick;
 
-    // Show/hide MOTM input
-    document.getElementById('motm-input-wrap').style.display =
-      selectedPick === 'motm' ? 'block' : 'none';
-  });
+  document.getElementById('score-input-wrap').style.display =
+    selectedPick === 'correct_score' ? 'block' : 'none';
+
+  document.getElementById('motm-input-wrap').style.display =
+    selectedPick === 'motm' ? 'block' : 'none';
 });
-
 // ─────────────────────────────────────────────────────────────
 // TOGGLE WILDCARD
 // ─────────────────────────────────────────────────────────────
