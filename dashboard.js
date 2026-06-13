@@ -112,8 +112,8 @@ async function loadTodayMatches() {
       todayMatches = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } else {
       // Not in Firestore — fetch from API and save
-      todayMatches = await fetchMatchesFromAPI(today);
-      await saveMatchesToFirestore(todayMatches);
+      const fetched = await fetchMatchesFromAPI(today);
+      todayMatches = await saveMatchesToFirestore(fetched);
     }
 
     await renderMatches();
@@ -153,11 +153,8 @@ async function fetchMatchesFromAPI(date) {
 
   // Find World Cup competition — cid 1382
   // If not found fall back to first competition
-const competitions = data.response?.items || [];
  const worldCup = competitions.find(c => c.cid === "1382" || c.cid === 1382 || c.cname?.toLowerCase().includes('world cup')) || competitions[0];
- console.log('World Cup object:', worldCup);
- console.log('Matches:', worldCup?.matches);
- 
+
   if (!worldCup || !worldCup.matches) return [];
 
   // Map each match to our format
@@ -182,12 +179,15 @@ const competitions = data.response?.items || [];
 // Saves API data so we don't call the API again tomorrow
 // ─────────────────────────────────────────────────────────────
 async function saveMatchesToFirestore(matches) {
+  const saved = [];
   for (const match of matches) {
-    await addDoc(collection(db, COLLECTIONS.matches), {
+    const docRef = await addDoc(collection(db, COLLECTIONS.matches), {
       ...match,
       createdAt: serverTimestamp(),
     });
+    saved.push({ ...match, id: docRef.id });
   }
+  return saved;
 }
 
 // ─────────────────────────────────────────────────────────────
