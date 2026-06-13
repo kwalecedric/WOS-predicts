@@ -130,11 +130,13 @@ async function loadTodayMatches() {
 // Called only when matches aren't in Firestore yet
 // ─────────────────────────────────────────────────────────────
 async function fetchMatchesFromAPI(date) {
-  const url = `https://${RAPIDAPI_HOST}/matches?date=${date}&competition_id=${COMPETITION_ID}`;
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const url = `https://${RAPIDAPI_HOST}/competition_matches_list?date=${date}&timezone=${encodeURIComponent(timezone)}`;
 
   const response = await fetch(url, {
     method: 'GET',
     headers: {
+      'Content-Type': 'application/json',
       'x-rapidapi-host': RAPIDAPI_HOST,
       'x-rapidapi-key':  RAPIDAPI_KEY,
     }
@@ -143,23 +145,24 @@ async function fetchMatchesFromAPI(date) {
   if (!response.ok) throw new Error('API fetch failed');
 
   const data = await response.json();
+  console.log('API response:', data); // temporary — helps us see the data structure
 
-  // Normalize API response into our own format
-  // This means if we ever change API, we only change this function
-  return (data.data || data.matches || []).map(match => ({
-    apiId:     match.id,
-    homeTeam:  match.home_team?.name  || match.homeTeam?.name  || 'Home',
-    awayTeam:  match.away_team?.name  || match.awayTeam?.name  || 'Away',
-    homeFlag:  match.home_team?.flag  || match.homeTeam?.flag  || '🏳️',
-    awayFlag:  match.away_team?.flag  || match.awayTeam?.flag  || '🏳️',
-    kickoff:   match.starting_at      || match.kickoff         || '',
-    group:     match.group?.name      || match.stage?.name     || 'Group Stage',
-    venue:     match.venue?.name      || '',
-    date:      date,
-    status:    'upcoming', // upcoming | live | finished
+  // Normalize response — we log first to see exact structure
+  const matches = data.data || data.matches || data.response || data || [];
+
+  return matches.map(match => ({
+    apiId:    match.id          || match.match_id    || '',
+    homeTeam: match.home_team   || match.homeName    || match.home?.name || 'Home',
+    awayTeam: match.away_team   || match.awayName    || match.away?.name || 'Away',
+    homeFlag: match.home_flag   || match.homeLogo    || '🏳️',
+    awayFlag: match.away_flag   || match.awayLogo    || '🏳️',
+    kickoff:  match.starting_at || match.match_start || match.date || '',
+    group:    match.group_name  || match.stage       || 'Group Stage',
+    venue:    match.venue       || '',
+    date:     date,
+    status:   'upcoming',
   }));
 }
-
 // ─────────────────────────────────────────────────────────────
 // SAVE MATCHES TO FIRESTORE
 // Saves API data so we don't call the API again tomorrow

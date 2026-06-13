@@ -180,3 +180,29 @@ document.addEventListener('keydown', e => {
   const isSignin = document.getElementById('form-signin').style.display !== 'none';
   if (isSignin) handleSignIn(); else handleSignUp();
 });
+// ── LOAD COMPETITION INFO ─────────────────────────────────────
+// Pulls live competition name and prize from Firestore
+// so landing page never has hardcoded values
+async function loadCompetitionInfo() {
+  try {
+    const { db, COLLECTIONS } = await import("./firebase-config.js");
+    const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js");
+    
+    const snap = await getDocs(collection(db, COLLECTIONS.competition));
+    if (snap.empty) return;
+    
+    const comp = snap.docs[0].data();
+    
+    if (comp.totalMatches) {
+      document.getElementById('landing-matches').textContent = comp.totalMatches;
+    }
+    if (comp.prizePool) {
+      document.getElementById('landing-prize').textContent = comp.prizePool;
+    }
+  } catch(e) {
+    // Silently fail — dashes show if no competition set up yet
+  }
+}
+
+// Call on page load
+loadCompetitionInfo();
