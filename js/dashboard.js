@@ -130,8 +130,8 @@ async function loadTodayMatches() {
 // Called only when matches aren't in Firestore yet
 // ─────────────────────────────────────────────────────────────
 async function fetchMatchesFromAPI(date) {
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const url = `https://${RAPIDAPI_HOST}/competition_matches_list?date=${date}&timezone=${encodeURIComponent(timezone)}`;
+  const timezone = encodeURIComponent('Africa/Douala');
+  const url = `https://${RAPIDAPI_HOST}/competition_matches_list?date=${date}&timezone=${timezone}`;
 
   const response = await fetch(url, {
     method: 'GET',
@@ -145,22 +145,33 @@ async function fetchMatchesFromAPI(date) {
   if (!response.ok) throw new Error('API fetch failed');
 
   const data = await response.json();
-  console.log('API response:', data); // temporary — helps us see the data structure
 
-  // Normalize response — we log first to see exact structure
-  const matches = data.data || data.matches || data.response || data || [];
+  // API returns items grouped by competition
+  // Each item has cname and a matches array inside
+  // We filter for World Cup only using cid 1382
+  const competitions = data.response?.items || [];
 
-  return matches.map(match => ({
-    apiId:    match.id          || match.match_id    || '',
-    homeTeam: match.home_team   || match.homeName    || match.home?.name || 'Home',
-    awayTeam: match.away_team   || match.awayName    || match.away?.name || 'Away',
-    homeFlag: match.home_flag   || match.homeLogo    || '🏳️',
-    awayFlag: match.away_flag   || match.awayLogo    || '🏳️',
-    kickoff:  match.starting_at || match.match_start || match.date || '',
-    group:    match.group_name  || match.stage       || 'Group Stage',
-    venue:    match.venue       || '',
+  // Find World Cup competition — cid 1382
+  // If not found fall back to first competition
+  const worldCup = competitions.find(c => c.cid === "1382") || competitions[0];
+
+  if (!worldCup || !worldCup.matches) return [];
+
+  // Map each match to our format
+  return worldCup.matches.map(match => ({
+    apiId:    match.mid                        || '',
+    homeTeam: match.teams?.home?.tname         || 'Home',
+    awayTeam: match.teams?.away?.tname         || 'Away',
+    homeLogo: match.teams?.home?.logo          || '',
+    awayLogo: match.teams?.away?.logo          || '',
+    homeAbbr: match.teams?.home?.abbr          || '',
+    awayAbbr: match.teams?.away?.abbr          || '',
+    kickoff:  match.datestart                  || '',
+    group:    worldCup.cname                   || 'Group Stage',
     date:     date,
-    status:   'upcoming',
+    status:   match.status === '3' ? 'live'
+            : match.status === '5' ? 'finished'
+            : 'upcoming',
   }));
 }
 // ─────────────────────────────────────────────────────────────
@@ -223,25 +234,35 @@ function buildMatchCard(match, existingPick, isLocked) {
 
   const statusText  = isLocked ? '🔒 Locked' : '⏰ Open';
   const statusClass = isLocked ? 'locked' : 'open';
-
-  // Format kickoff time for display
   const kickoffDisplay = formatKickoff(match.kickoff);
 
-  // Footer — shows existing pick or predict button
+  // Home logo or abbreviation fallback
+  const homeImgHTML = match.homeLogo
+    ? `<img src="${match.homeLogo}" style="width:36px;height:36px;object-fit:contain;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+       <span style="display:none;font-size:13px;font-weight:700;color:var(--text);">${match.homeAbbr}</span>`
+    : `<span style="font-size:13px;font-weight:700;color:var(--text);">${match.homeAbbr || '?'}</span>`;
+
+  // Away logo or abbreviation fallback
+  const awayImgHTML = match.awayLogo
+    ? `<img src="${match.awayLogo}" style="width:36px;height:36px;object-fit:contain;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+       <span style="display:none;font-size:13px;font-weight:700;color:var(--text);">${match.awayAbbr}</span>`
+    : `<span style="font-size:13px;font-weight:700;color:var(--text);">${match.awayAbbr || '?'}</span>`;
+
+  // Footer
   let footerHTML = '';
   if (existingPick) {
     const pickLabel = getPickLabel(existingPick.pick);
-    const wcBadge   = existingPick.wildcard
-      ? '<span style="color:var(--amber); font-size:11px;">🃏 Wildcard</span>' : '';
+    const wcBadge = existingPick.wildcard
+      ? '<span style="color:var(--amber);font-size:11px;">🃏 Wildcard</span>' : '';
     footerHTML = `
       <div class="pick-submitted">
         ✅ <span>${pickLabel}</span>
         ${existingPick.pick === 'correct_score'
-          ? `<span style="color:var(--text-muted); font-size:11px;">(${existingPick.scoreHome}–${existingPick.scoreAway})</span>`
-          : ''}
+          ? `<span style="color:var(--text-muted);font-size:11px;">(${existingPick.scoreHome}–${existingPick.scoreAway})</span>` : ''}
         ${existingPick.pick === 'motm'
-          ? `<span style="color:var(--text-muted); font-size:11px;">(${existingPick.motmPlayer})</span>`
-          : ''}
+          ? `<span style="color:var(--text-muted);font-size:11px;">(${existingPick.motmPlayer})</span>` : ''}
       </div>
       ${wcBadge}`;
   } else if (isLocked) {
@@ -261,7 +282,7 @@ function buildMatchCard(match, existingPick, isLocked) {
     </div>
     <div class="match-teams-row">
       <div class="team-block">
-        <div class="team-flag">${match.homeFlag}</div>
+        <div class="team-flag">${homeImgHTML}</div>
         <div class="team-name">${match.homeTeam}</div>
       </div>
       <div class="match-center">
@@ -270,7 +291,7 @@ function buildMatchCard(match, existingPick, isLocked) {
         <div class="countdown" id="countdown-${match.id}"></div>
       </div>
       <div class="team-block">
-        <div class="team-flag">${match.awayFlag}</div>
+        <div class="team-flag">${awayImgHTML}</div>
         <div class="team-name">${match.awayTeam}</div>
       </div>
     </div>
@@ -291,17 +312,25 @@ window.openModal = function(matchId) {
   if (!activePick) return;
 
   // Set match header in modal
-  document.getElementById('modal-match-header').innerHTML = `
-    <div class="modal-team">
-      <div class="modal-flag">${activePick.homeFlag}</div>
-      <div class="modal-team-name">${activePick.homeTeam}</div>
+ document.getElementById('modal-match-header').innerHTML = `
+  <div class="modal-team">
+    <div class="modal-flag">
+      ${activePick.homeLogo
+        ? `<img src="${activePick.homeLogo}" style="width:32px;height:32px;object-fit:contain;">`
+        : activePick.homeAbbr}
     </div>
-    <div class="modal-vs">VS</div>
-    <div class="modal-team">
-      <div class="modal-flag">${activePick.awayFlag}</div>
-      <div class="modal-team-name">${activePick.awayTeam}</div>
+    <div class="modal-team-name">${activePick.homeTeam}</div>
+  </div>
+  <div class="modal-vs">VS</div>
+  <div class="modal-team">
+    <div class="modal-flag">
+      ${activePick.awayLogo
+        ? `<img src="${activePick.awayLogo}" style="width:32px;height:32px;object-fit:contain;">`
+        : activePick.awayAbbr}
     </div>
-  `;
+    <div class="modal-team-name">${activePick.awayTeam}</div>
+  </div>
+`;
 
   // Update team labels on pick options and score inputs
   document.getElementById('pick-home-label').textContent = activePick.homeTeam + ' win';
