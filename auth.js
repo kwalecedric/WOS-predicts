@@ -45,7 +45,7 @@ onAuthStateChanged(auth, async (user) => {
 
   // Super admin goes straight to super admin dashboard
 if (isSuperAdmin(user.uid)) {
-    sessionStorage.setItem('activeLeagueId', 'GoQywLIG0V4oWGvl8yRQ');
+    sessionStorage.setItem('activeLeagueId', 'c4k9oD9ejANTqtkLlc0Y082kYnl2');
     window.location.href = "dashboard.html";
     return;
   }
