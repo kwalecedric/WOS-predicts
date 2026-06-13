@@ -44,8 +44,9 @@ onAuthStateChanged(auth, async (user) => {
   const userData = userSnap.data();
 
   // Super admin goes straight to super admin dashboard
-  if (isSuperAdmin(user.uid)) {
-    window.location.href = "super-admin.html";
+if (isSuperAdmin(user.uid)) {
+    sessionStorage.setItem('activeLeagueId', 'GoQywLIG0V4oWGvl8yRQ');
+    window.location.href = "dashboard.html";
     return;
   }
 
