@@ -15,12 +15,11 @@ import {
 
 import {
   auth, db, googleProvider,
-  COLLECTIONS, ROLES, STATUS,
-  isSuperAdmin
+  COLLECTIONS, ROLES, STATUS
 } from "./firebase-config.js";
 
 // ── HANDLE REDIRECT SCREENS ───────────────────────────────────
-const urlParams  = new URLSearchParams(window.location.search);
+const urlParams   = new URLSearchParams(window.location.search);
 const screenParam = urlParams.get('screen');
 if (screenParam) {
   document.addEventListener('DOMContentLoaded', () => {
@@ -32,20 +31,19 @@ if (screenParam) {
 onAuthStateChanged(auth, async (user) => {
   if (!user) return;
 
-  // Super admin check FIRST — no Firestore call needed
-  if (isSuperAdmin(user.uid)) {
-    sessionStorage.setItem('activeLeagueId', 'GoQywLIG0V4oWGvl8yRQ');
-    window.location.href = "dashboard.html";
-    return;
-  }
-
-  // Fetch Firestore for regular users
   const userRef  = doc(db, COLLECTIONS.users, user.uid);
   const userSnap = await getDoc(userRef);
 
   if (!userSnap.exists()) return;
 
-  const userData  = userSnap.data();
+  const userData = userSnap.data();
+
+  if (userData.isSuperAdmin === true) {
+    sessionStorage.setItem('activeLeagueId', 'GoQywLIG0V4oWGvl8yRQ');
+    window.location.href = "dashboard.html";
+    return;
+  }
+
   const leagues   = userData.leagues || {};
   const leagueIds = Object.keys(leagues);
 
@@ -71,13 +69,16 @@ onAuthStateChanged(auth, async (user) => {
 
 // ── CREATE USER PROFILE ───────────────────────────────────────
 async function createUserProfile(user, displayName) {
-  const userRef = doc(db, COLLECTIONS.users, user.uid);
+  const userRef  = doc(db, COLLECTIONS.users, user.uid);
+  const userSnap = await getDoc(userRef);
+  const isSuper  = userSnap.exists() ? userSnap.data().isSuperAdmin === true : false;
+
   await setDoc(userRef, {
     uid:          user.uid,
     displayName:  displayName || user.displayName || "Player",
     email:        user.email,
     photoURL:     user.photoURL || null,
-    isSuperAdmin: isSuperAdmin(user.uid),
+    isSuperAdmin: isSuper,
     leagues:      {},
     createdAt:    serverTimestamp(),
   }, { merge: true });
